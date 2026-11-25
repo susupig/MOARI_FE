@@ -48,10 +48,13 @@ jobs:
       - name: Start frontend and verify the HTTP response
         run: |
           docker run --detach --name moari-fe -p 127.0.0.1:8080:8080 "$IMAGE"
-          curl --fail --silent --show-error --retry 12 --retry-connrefused --retry-delay 2 http://127.0.0.1:8080/ --output /tmp/moari-index.html
+          curl --fail --silent --show-error --max-time 5 --retry 12 --retry-all-errors --retry-delay 2 http://127.0.0.1:8080/ --output /tmp/moari-index.html
           grep -q 'id="root"' /tmp/moari-index.html
           curl --fail --silent --show-error http://127.0.0.1:8080/ci-route --output /tmp/moari-route.html
           cmp /tmp/moari-index.html /tmp/moari-route.html
+      - name: Print container logs on failure
+        if: failure()
+        run: docker logs moari-fe || true
       - name: Publish verified image to GitHub Container Registry
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
